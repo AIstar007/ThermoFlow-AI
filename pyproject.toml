@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "thermal-perfusion-pattern-analysis"
+version = "1.5.0"
+description = "Interpretable thermal-sequence analysis and apparent thermal-front propagation"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.26", "scipy>=1.11", "pandas>=2.0", "matplotlib>=3.8",
+  "scikit-image>=0.22", "Pillow>=10.0", "tifffile>=2024.2.12",
+  "streamlit>=1.67,<2.0", "plotly>=6.0,<7.0"
+]
+
+[project.optional-dependencies]
+vision = ["opencv-python-headless>=4.10", "harvesters>=1.4"]
+ai = ["ultralytics>=8.3"]
+ml = ["scikit-learn>=1.5"]
+ml-xgboost = ["scikit-learn>=1.5", "xgboost>=2.0"]
+tracking = ["mlflow>=3.0"]
+data-versioning = ["dvc>=3.0"]
+wavelets = ["PyWavelets>=1.6"]
+sensors = ["pylsl>=1.18,<2", "pyxdf>=1.18,<2"]
+explainability = ["scikit-learn>=1.5", "shap>=0.48"]
+research = ["opencv-python-headless>=4.10", "harvesters>=1.4", "ultralytics>=8.3", "scikit-learn>=1.5", "xgboost>=2.0", "mlflow>=3.0", "PyWavelets>=1.6", "pylsl>=1.18,<2", "pyxdf>=1.18,<2", "shap>=0.48"]
+
+[project.entry-points."thermoprop.camera_adapters"]
+# Vendor-specific plugins may register here from separately installed packages.
+
+[project.scripts]
+thermoprop = "thermoprop.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+thermoprop = ["integrations/*.txt"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

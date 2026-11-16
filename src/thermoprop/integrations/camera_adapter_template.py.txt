@@ -1,0 +1,100 @@
+"""ThermoProp camera-adapter starter template.
+
+This is a plugin skeleton, not a working driver. Replace every NotImplementedError
+with calls to the exact vendor SDK and test against the physical model/firmware.
+Install vendor SDKs and licenses separately. Register the package under the
+``thermoprop.camera_adapters`` entry-point group. Never claim radiometric accuracy
+unless the SDK's output and calibration path have been verified.
+
+Plugin parameter schema types: bool, int, float, str, password, select.
+"""
+from __future__ import annotations
+
+from typing import Any
+
+import numpy as np
+
+
+class MyCameraAdapter:
+    """Implement only the methods genuinely supported by this camera family."""
+
+    def get_parameter_schema(self, connection: str | None = None) -> list[dict[str, Any]]:
+        """Return controls supported by this model/connection only.
+
+        Do not copy example values unless the vendor SDK documents them.
+        Password values are masked in the application and redacted from exports.
+        """
+        return [
+            {"key": "integration_time_ms", "label": "Integration time (ms)",
+             "type": "float", "default": 10.0, "min": 0.1, "max": 100.0,
+             "step": 0.1, "help": "Example only; replace bounds with vendor-documented values."},
+            {"key": "pixel_format", "label": "Pixel format", "type": "select",
+             "options": ["Mono16"], "default": "Mono16",
+             "help": "Only expose pixel formats that the adapter decodes correctly."},
+            {"key": "api_token", "label": "API token", "type": "password", "default": ""},
+        ]
+
+    def probe(self, connection: str, **options) -> list[dict]:
+        """Return only devices discovered through the actual vendor SDK."""
+        raise NotImplementedError("Implement device discovery using the camera vendor SDK.")
+
+    def healthcheck(self, device_id=None, **options) -> dict:
+        """Check an actual device/SDK connection; never return ok=True by default."""
+        raise NotImplementedError("Implement a non-destructive SDK/device health check.")
+
+    def configure(self, device_id=None, settings=None, **options) -> dict:
+        """Apply settings through the SDK and read back the applied values."""
+        raise NotImplementedError("Implement vendor-specific camera configuration.")
+
+    def acquire_sequence(self, connection: str, device_id=None, duration_s=30.0,
+                         frame_rate_hz=3.0, settings=None, **options) -> dict:
+        """Finite capture returning scalar frames, timestamps and provenance.
+
+        Required frame format: numeric ``(n_frames, height, width)``.
+        Do not return RGB/pseudocolour images. ``timestamps_s`` must be in one
+        documented, strictly increasing clock domain, or None when unavailable.
+        """
+        raise NotImplementedError("Implement finite acquisition using the vendor SDK.")
+        # Example return after implementation:
+        # return {
+        #     "frames": frames.astype(np.float32),
+        #     "timestamps_s": timestamps_s,
+        #     "metadata": {
+        #         "model": "exact model", "serial": "serial",
+        #         "units": "camera_counts",  # or °C only after verified conversion
+        #         "pixel_format": "Mono16",
+        #         "calibration_status": "not_verified",
+        #         "timestamp_clock_domain": "camera hardware clock",
+        #         "sdk_name": "vendor SDK", "sdk_version": "version",
+        #     },
+        # }
+
+    def acquire_multi_sequence(self, connection: str, device_ids, duration_s=30.0,
+                               frame_rate_hz=3.0, settings=None, **options) -> dict:
+        """Optional synchronized multi-camera capture.
+
+        Only implement when the vendor/hardware offers a documented common
+        trigger/timebase. Independent start calls are not synchronization.
+        Set synchronization_verified_by_adapter=True only after the adapter
+        verifies that timing relationship. Keep recordings separate per device.
+        """
+        raise NotImplementedError("Synchronized multi-camera capture is not implemented.")
+
+    def load_recording(self, payload: bytes, filename: str, settings=None, **options) -> dict:
+        """Decode a native file with the vendor SDK, preserving timestamps/metadata."""
+        raise NotImplementedError("Implement native recording decoding for documented formats.")
+
+
+def get_adapter():
+    return MyCameraAdapter()
+
+
+# Register the package with an entry point whose name matches a ThermoProp
+# camera profile ID (for example `flir`, `optris`, `xenics`, `hikmicro`, or `other`):
+#
+# [project.entry-points."thermoprop.camera_adapters"]
+# flir = "my_flir_adapter:get_adapter"
+#
+# A vendor-specific adapter takes precedence over the built-in generic adapter
+# for the same profile. Test with the precise camera model, firmware, SDK,
+# operating system, pixel format, calibration settings and physical connection.

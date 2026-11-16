@@ -1,0 +1,8 @@
+stages:
+  synthetic_validation:
+    cmd: python examples/run_synthetic_demo.py
+    deps:
+      - examples/run_synthetic_demo.py
+      - src/thermoprop
+    outs:
+      - results/synthetic_demo

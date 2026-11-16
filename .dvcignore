@@ -1,0 +1,5 @@
+# Keep local environments, caches and browser previews out of DVC data tracking.
+.venv/
+__pycache__/
+.pytest_cache/
+.streamlit/

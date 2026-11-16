@@ -1,0 +1,279 @@
+Metadata-Version: 2.4
+Name: thermal-perfusion-pattern-analysis
+Version: 1.5.0
+Summary: Interpretable thermal-sequence analysis and apparent thermal-front propagation
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: numpy>=1.26
+Requires-Dist: scipy>=1.11
+Requires-Dist: pandas>=2.0
+Requires-Dist: matplotlib>=3.8
+Requires-Dist: scikit-image>=0.22
+Requires-Dist: Pillow>=10.0
+Requires-Dist: tifffile>=2024.2.12
+Requires-Dist: streamlit<2.0,>=1.67
+Requires-Dist: plotly<7.0,>=6.0
+Provides-Extra: vision
+Requires-Dist: opencv-python-headless>=4.10; extra == "vision"
+Requires-Dist: harvesters>=1.4; extra == "vision"
+Provides-Extra: ai
+Requires-Dist: ultralytics>=8.3; extra == "ai"
+Provides-Extra: ml
+Requires-Dist: scikit-learn>=1.5; extra == "ml"
+Provides-Extra: ml-xgboost
+Requires-Dist: scikit-learn>=1.5; extra == "ml-xgboost"
+Requires-Dist: xgboost>=2.0; extra == "ml-xgboost"
+Provides-Extra: tracking
+Requires-Dist: mlflow>=3.0; extra == "tracking"
+Provides-Extra: data-versioning
+Requires-Dist: dvc>=3.0; extra == "data-versioning"
+Provides-Extra: wavelets
+Requires-Dist: PyWavelets>=1.6; extra == "wavelets"
+Provides-Extra: sensors
+Requires-Dist: pylsl<2,>=1.18; extra == "sensors"
+Requires-Dist: pyxdf<2,>=1.18; extra == "sensors"
+Provides-Extra: explainability
+Requires-Dist: scikit-learn>=1.5; extra == "explainability"
+Requires-Dist: shap>=0.48; extra == "explainability"
+Provides-Extra: research
+Requires-Dist: opencv-python-headless>=4.10; extra == "research"
+Requires-Dist: harvesters>=1.4; extra == "research"
+Requires-Dist: ultralytics>=8.3; extra == "research"
+Requires-Dist: scikit-learn>=1.5; extra == "research"
+Requires-Dist: xgboost>=2.0; extra == "research"
+Requires-Dist: mlflow>=3.0; extra == "research"
+Requires-Dist: PyWavelets>=1.6; extra == "research"
+Requires-Dist: pylsl<2,>=1.18; extra == "research"
+Requires-Dist: pyxdf<2,>=1.18; extra == "research"
+Requires-Dist: shap>=0.48; extra == "research"
+Dynamic: license-file
+
+# Thermal Pattern Propagation Lab
+
+**Version 1.5.0 · Research software · Python + Streamlit + Plotly**
+
+An interpretable workflow for sequential thermal-image analysis. The application explores surface-temperature or relative-intensity dynamics, supports multiple named polygon ROIs, respects acquisition protocol boundaries, estimates apparent thermal-front propagation, and exports reproducible outputs.
+
+> **Scientific boundary:** Infrared thermography observes emitted infrared radiation. A radiometric camera can estimate surface temperature when properly calibrated; it does not measure blood flow directly. Direction and speed outputs in this project describe propagation of a thresholded surface-temperature pattern, not vascular direction or blood-flow velocity. No clinical validation is claimed.
+
+## What's new in v1.5
+
+- **Interactive anatomical ROIs:** Draw named polygons or rectangles directly on a thermal frame using a Streamlit Components v2 canvas editor. Up to eight non-degenerate, uniquely named regions can be saved.
+- **Multiple ROI comparison:** Analyze a union mask once, then extract separate full-resolution time-series for each named ROI from the shared Δ and derivative arrays.
+- **Protocol-aware timeline:** Choose either a continuous baseline → challenge → recovery recording, or a baseline + rewarming recording where the cooling/challenge interval is not present in the image sequence.
+- **Event-relative recovery mapping:** Keep pre-protocol baseline Δ separate from rewarming Δ. In the missing-challenge mode, front-arrival maps use a short reference window at the first recorded rewarming frames, so warming is detectable even while the skin remains below its pre-cooling temperature. Pre-event frames are masked from this channel.
+- **Missing-interval safety:** Derivatives are calculated separately on either side of an unrecorded challenge boundary. The app never invents intermediate frames. A missing gap is included in the time axis only if its duration is independently confirmed.
+- **Timestamp CSV ingestion:** Use one numeric column of strictly increasing frame timestamps in seconds. Uploaded timestamps are preserved; large gaps are flagged unless their interpretation is confirmed.
+- **Acquisition QC:** Review frame-interval variation, finite-pixel coverage, scale-normalized baseline drift, sampled 3×IQR outlier fraction, ROI coverage/overlap, and optional registration shifts.
+- **Threshold robustness view:** Compare warming/cooling event coverage over several threshold multipliers.
+- **Animated frame explorer:** Browser-side Plotly playback with play/pause, time navigation, raw/baseline-Δ/event-progression/rate views, and named ROI contours. Only the browser preview is downsampled; quantitative analysis uses all original-resolution frames.
+- **Reproducible export:** Download named ROI geometry, phase timeline, union and regional CSV metrics, summary JSON, NumPy analysis arrays, six-panel PNG, standalone Plotly HTML, and source/calibration provenance manifest in a ZIP bundle.
+- **Capability-aware camera integrations:** FLIR, InfraTec, Optris, Seek, HIKMICRO, Testo, Fluke, InfiRay/Guide, GenICam/GenTL, generic and custom profiles. Adapter-backed device discovery, SDK health checks, dynamic per-camera settings, camera configuration, finite single/multi-camera capture and native file decoding are enabled only when the installed plugin advertises the relevant method.
+- **Camera plugin contract:** Added a documented adapter template for vendor-specific SDKs. Multi-camera adapters must provide per-device timestamps and state the synchronization method; synchronization is marked verified only when the adapter explicitly confirms it. Recordings remain separate, and mixed camera vendors require a custom orchestration adapter.
+- **XDF / LabRecorder import:** Select a numeric physiological stream and channel from an XDF recording, configure modality/units and clock alignment. XDF clock sync is on by default; de-jitter is optional and off by default to avoid hiding dropped-frame gaps.
+- **Live LSL acquisition:** Discover local Lab Streaming Layer streams and capture finite timestamped channels, with periodic receiver-clock correction and an explicit camera-to-LSL offset control.
+- **Reference signal quality reporting:** Invalid rows, duplicate/reordered timestamps, sample-rate estimates, interval variability and large signal gaps are recorded.
+- **Tree-model explainability:** Optional SHAP global feature contributions for supported Random Forest, Extra Trees and XGBoost regressors. Grouped participant-level validation remains mandatory; explainability is not causality.
+- **Per-recording isolation:** Camera settings and saved sensor channels are scoped to the loaded thermal sequence so a new recording does not accidentally inherit stale sensor data.
+- **Physics-informed sandbox:** Configurable one-dimensional Pennes forward simulation and optional calibrated-Celsius paper-derived heat-balance index; neither is a direct perfusion measurement.
+
+
+- **Expanded camera catalogue:** FLIR, InfraTec, Optris, Seek, HIKMICRO, Hikvision, Testo, Fluke, InfiRay, Guide, Workswell, Xenics, Telops, Sierra-Olympic, Axis, MOBOTIX, Basler, Allied Vision, IDS, LUCID, Teledyne DALSA, XIMEA, Raptor Photonics, NIT, smartphone cores, thermopile arrays, GenICam/GenTL, generic HTTP matrix gateways and an Other/custom profile.
+- **Opt-in GenICam controls:** Where supported by a camera, set ExposureTime, Gain and AcquisitionFrameRate through the generic GenTL adapter; the adapter checks feature availability, writability and camera limits and reads back values.
+- **Detector architecture metadata:** Record camera form factor, detector technology, spectral band, numeric output representation, calibration state and pixel format. These describe the instrument and never claim to activate a driver or calibrate the data.
+- **Clearer no-adapter guidance:** Recorded scalar NPY/NPZ/TIFF/CSV/ZIP imports remain available without a vendor adapter; the UI no longer implies that a missing live SDK blocks ordinary file analysis.
+- **Safer generic acquisition timing:** GenTL capture never mixes camera-clock timestamps and host-clock receive times in one vector. It records which timing source was used and rejects non-monotonic clocks.
+
+## Research-informed workflow
+
+1. Load one scalar sequence in `frames × height × width` order.
+2. Confirm the input units; the unit selector is a label, not a calibration operation.
+3. Enter acquisition timing or upload a timestamp CSV.
+4. Select the protocol that matches the recording. Do not create a recorded challenge phase if it is absent from the sequence.
+5. Draw named ROIs, or leave the editor empty to analyze the full frame.
+6. Optionally apply spatial smoothing and translation registration. Registration is opt-in because it can suppress real movement or thermal changes.
+7. Calculate a per-pixel median pre-protocol baseline, baseline-relative Δ maps, event-relative progression maps, and dT/dt. Event-relative maps use the first recorded challenge/recovery frames as the reference; pre-event frames are masked.
+8. Estimate first-arrival maps and the direction/normal speed of the apparent thresholded thermal front from the event-relative channel. This matters when post-cooling skin warms but remains below the pre-cooling baseline.
+9. Inspect regional signals, descriptive rewarming fits, protocol phase bands, threshold sensitivity, and QC indicators.
+10. Export settings, geometry, timelines, metrics, figures, and arrays.
+
+The front-speed formula uses the gradient of a first-arrival-time field:
+
+\[
+\mathbf{n}=\frac{\nabla t_{arrival}}{|\nabla t_{arrival}|},\qquad
+v_n=\frac{1}{|\nabla t_{arrival}|}.
+\]
+
+The units are pixels/s unless a documented spatial pitch is supplied, in which case the output is mm/s. This remains an apparent thermal-front speed, not a physiological blood-flow speed.
+
+## DIRT-SR38: recommended real-sequence test
+
+[DIRT-SR38 Zenodo record](https://doi.org/10.5281/zenodo.19241293) and [CVPR 2026 Workshop paper](https://openaccess.thecvf.com/content/CVPR2026W/PBVS/papers/Clarys_DIRT-SR38_A_Real_Paired_Cross-Sensor_Thermal_Sequence_Dataset_for_Super-Resolution_CVPRW_2026_paper.pdf).
+
+The paper describes 38 healthy adult female participants. Each subject has a 30-second steady-state baseline (90 frames) and a four-minute rewarming sequence (720 frames), totaling 810 aligned LR/HR pairs. The controlled cooling stimulus occurs between the baseline and rewarming recordings; the stimulus interval itself is **not** included as a recorded image phase. The released PNGs are intensity-normalized (8-bit and 16-bit), so values represent relative thermal intensity rather than calibrated °C. LR is 108×108 and HR 216×216; the paired release uses 3 Hz LR sampling. The nominal abdominal ROI is 150×150 mm, corresponding to about 1.389 mm/px for the 108×108 LR crop and 0.694 mm/px for 216×216 HR.
+
+For a real test:
+
+1. Download the archive and select one participant and one modality only (LR **or** HR).
+2. Put that participant's 90 baseline frames first, followed by the 720 rewarming frames, using a consistent natural filename order in one ZIP folder.
+3. Do not mix different participants, LR and HR modalities, or unrelated sequence folders in one upload.
+4. Select **relative intensity**, not °C.
+5. Set nominal frame rate to 3 Hz and baseline length to 90 frames.
+6. Choose **Baseline + rewarming (challenge interval not recorded)**.
+7. If no independently confirmed challenge-duration value or absolute timestamps are available, leave the gap duration unconfirmed. The app will omit that gap from the recorded-time axis but still split smoothing and derivatives at the baseline/rewarming boundary.
+8. The event-progression channel uses the first recorded rewarming frame as its default reference; an adjustable 1–10 frame median window is available to trade noise reduction against front smearing. The pre-cooling baseline remains available in the separate baseline-relative Δ channel.
+9. Set the ROI according to the actual dataset crop; the full 150×150 mm crop is a defensible initial ROI for this release.
+
+The dataset is appropriate for studying relative rewarming patterns, but the released normalized PNGs do not provide absolute °C or a synchronized LSCI/laser-Doppler perfusion ground truth. It cannot alone validate direct perfusion estimates.
+
+## Install on Windows PowerShell
+
+Python 3.10–3.13 is supported by the package constraints. Use Python 3.12 for a predictable local environment:
+
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+pip install -e .
+```
+
+Launch the application:
+
+```powershell
+streamlit run app.py
+```
+
+**UI requirement:** Streamlit 1.67+ is required for the Components v2 ROI editor. Plotly 6+ powers the animated heatmap and interactive time-series. `streamlit[charts]` is not needed for the core implementation.
+
+## Run software-validation demos
+
+```powershell
+python examples\run_synthetic_demo.py
+pytest -q
+```
+
+The bundled synthetic examples contain known planar warming/cooling fronts. They test software direction/speed recovery only. They are not real participant, animal, or clinical recordings.
+
+## Supported input formats
+
+| File type | Expected data |
+|---|---|
+| `.npy` | 2-D frame or 3-D `(frames, H, W)` numeric array |
+| `.npz` | Named numeric thermal array; choose the key if ambiguous |
+| `.tif` / `.tiff` | Multi-page scalar thermal stack |
+| `.zip` | Ordered scalar PNG/TIFF/BMP/JPEG frames from one sequence; do not combine modalities or participants |
+| `.json` | Numeric matrix recording only when the **Generic HTTP / ISAPI radiometric matrix API** profile is selected; requires a `frames` array and optional `timestamps_s` / `metadata` fields |
+| Timestamp `.csv` | One strictly increasing numeric column in seconds, one value per frame |
+
+Colour/pseudocolour exports are rejected because RGB palette values are not radiometric measurements. Vendor-native formats (for example FLIR `.seq`) require a camera-specific export/parser; convert to calibrated matrices or scalar image sequences while retaining original radiometric files and metadata.
+
+## Protocol modes
+
+### Baseline + rewarming (challenge interval not recorded)
+
+Use when the first segment is a steady-state baseline and the following segment is recorded after an unrecorded cooling/stimulation interval (as in DIRT-SR38). The derivative calculation is split at `baseline_frames`, so it does not calculate a finite difference across the missing interval. If the challenge duration is unknown, recorded time omits the gap and says so. If a gap duration or timestamps spanning the gap are independently documented, the elapsed-time axis can include it.
+
+### Continuous baseline → challenge → recovery
+
+Use only when all three phases are present in the recording. Supply baseline length, challenge start frame, and challenge end frame (exclusive). No artificial break is introduced between observed phases.
+
+## ROI editor notes
+
+- Polygon: select Polygon, add vertices by clicking on the frame, name the region, then select Finish shape.
+- Rectangle: select Rectangle and click two opposite corners.
+- Undo: remove the latest pending polygon vertex, or the most recent saved region.
+- Full frame: add the full-frame preset region.
+- Clear all: remove saved named regions; the analysis falls back to a full-frame ROI until you draw a new region.
+- Regions may overlap. Their separate results are reported; overlapping area should not be summed as independent tissue.
+
+## Repository layout
+
+```text
+app.py
+src/thermoprop/
+  analysis.py       # baseline, Δ, dT/dt, arrival maps and propagation estimates
+  dashboard.py      # Plotly animation, phase charts, ROI comparison and motion plots
+  io.py             # scalar image/array readers
+  preprocess.py     # denoising and optional translation registration
+  protocol.py       # timestamp validation, phases and derivative discontinuities
+  quality.py        # acquisition QC indicators
+  recovery.py       # descriptive exponential rewarming fit
+  roi.py            # polygon validation, rasterization and ROI metric extraction
+  roi_editor.py     # Components v2 browser-side polygon/rectangle editor
+  synthetic.py      # deterministic known-motion demonstrations
+  pennes.py         # idealized 1-D forward bioheat simulation
+  spectral.py       # timestamp-aware Welch / optional CWT tools
+  modeling.py       # grouped reference-target ML validation
+  integrations/     # camera profiles, adapter plugins, signal fusion, AI ROI and MLflow
+docs/
+  RESEARCH_REVIEW.md
+  TECHNICAL_REPORT.md
+  UI_REDESIGN.md
+  INTEGRATIONS.md
+  CAMERA_SUPPORT_MATRIX.md
+tests/
+examples/
+results/
+```
+
+## Validation status
+
+The test suite exercises algorithm direction/speed on synthetic fields, event-relative rewarming below the pre-protocol baseline, timestamp and phase logic, derivative/smoothing discontinuity handling, ROI polygon geometry and overlaps, Components v2 state extraction, regional time-series extraction, QC warnings, Plotly playback and phase charts, input reading, and exported pipeline artifacts. It does **not** establish physiological validity. A real-data run on at least two DIRT-SR38 participants remains necessary, and any perfusion claim requires synchronized independent reference measurements such as LSCI or laser-Doppler flowmetry.
+
+## Safety and limitations
+
+- Relative intensity and camera counts are not degrees Celsius. A unit selector does not calibrate the data.
+- Thermal patterns depend on perfusion and also on conduction, radiation, convection, evaporation/sweating, ambient conditions, emissivity, geometry, camera response, non-uniformity correction, and motion.
+- Registration and smoothing can erase or distort features; inspect the outputs and settings.
+- Front arrival and speed depend on ROI, threshold, temporal sampling, spatial smoothing, and missing frames.
+- Exponential recovery fits are descriptive thermal time constants, not direct perfusion values.
+- Use of this software is restricted to research/engineering evaluation. It is not a medical device and must not be used for diagnosis or treatment decisions.
+
+## Earlier optional integrations (v1.3.0)
+
+The application now provides selectable camera profiles, a plugin-based vendor adapter contract, timestamped reference-sensor fusion (LSCI, laser-Doppler, PPG, ECG, GSR/EDA and environmental channels), optional thermal-domain YOLO segmentation proposals, Welch/CWT temporal analysis, grouped participant-level ML reference modelling, MLflow experiment tracking, a Pennes forward simulator and the optional paper-derived heat-balance index.
+
+Read **[docs/CAMERA_SUPPORT_MATRIX.md](docs/CAMERA_SUPPORT_MATRIX.md)** and **[docs/INTEGRATIONS.md](docs/INTEGRATIONS.md)** before connecting hardware or interpreting model outputs. Camera profiles do not automatically install proprietary SDKs or guarantee live acquisition. Native file decoding/live control requires the matching vendor SDK and a tested `thermoprop.camera_adapters` plugin. Scalar radiometric exports remain the portable route.
+
+Install optional components individually; the core app works without them:
+
+```bash
+pip install -e ".[ai,vision,ml-xgboost,tracking,wavelets]"
+```
+
+The optional AI ROI model must be trained/validated on thermal images. Perfusion-reference regression requires paired independent LSCI or laser-Doppler labels and participant-grouped validation. The Pennes module is forward simulation only. No output should be interpreted as a direct blood-flow measurement.
+
+## Data versioning
+
+An optional DVC pipeline is included for reproducible synthetic validation. See [docs/DATA_VERSIONING.md](docs/DATA_VERSIONING.md). DVC is not required for application use.
+
+
+## v1.4 optional integrations
+
+Install only the extras required by your experiment:
+
+```powershell
+# LabRecorder XDF import and live LSL streams
+pip install -e ".[sensors]"
+
+# Grouped participant-level reference-model training (scikit-learn)
+pip install -e ".[ml]"
+
+# SHAP global explanations for tree-based reference models
+pip install -e ".[explainability]"
+
+# YOLO thermal-domain ROI suggestions
+pip install -e ".[ai]"
+
+# XGBoost supervised reference regression
+pip install -e ".[ml-xgboost]"
+
+# Optional collection of research features (larger install)
+pip install -e ".[research]"
+```
+
+See [Camera, sensor, AI and research integrations](docs/INTEGRATIONS.md) for supported profiles, vendor SDK boundaries, plugin interfaces, XDF/LSL synchronization behaviour and scientific limitations. Proprietary vendor SDKs and licenses must be installed separately.
+
+**Testing optional ML integrations:** the default installation intentionally omits scikit-learn. The core test suite still validates insufficient-data checks without it; the actual grouped-ML training test is skipped until the optional dependency is installed. To exercise the ML training path, run `pip install -e ".[ml]"` before `pytest -q`. If a valid training request is made without scikit-learn, the app reports this install command instead of an unhandled import error.

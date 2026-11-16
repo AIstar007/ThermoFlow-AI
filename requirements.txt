@@ -1,0 +1,10 @@
+numpy>=1.26,<3
+scipy>=1.11
+pandas>=2.0
+matplotlib>=3.8
+scikit-image>=0.22
+Pillow>=10.0
+tifffile>=2024.2.12
+streamlit>=1.67,<2.0
+plotly>=6.0,<7.0
+pytest>=8.0
