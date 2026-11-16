@@ -6,7 +6,7 @@
 
 > ⚠️ **Research / engineering demonstration only.** Thermal cameras observe emitted infrared radiation. Properly calibrated radiometric data can estimate surface temperature, but this application does not directly measure blood flow, diagnose vascular disease, or provide treatment recommendations. Direction and speed outputs describe apparent propagation of a thresholded surface-temperature pattern — not vascular direction or blood-flow velocity. No clinical validation is claimed.
 
-## 🎬 Interactive synthetic walkthrough
+## 🎬 Interactive project walkthrough
 
 The animated preview below compares the two deterministic sequences included for software validation.
 
